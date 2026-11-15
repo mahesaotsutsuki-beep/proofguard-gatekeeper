@@ -53,7 +53,13 @@ Registered verification-key hash:
 
 - The task-ID encoding (a public signal) and the exact proof field names
   in the response are confirmed against practice mode after registration.
-- The public endpoint URL is set at deployment (ngrok/VPS).
+
+## Deployment
+
+The live agent runs in a GitHub Codespace with port 3000 forwarded on a
+public HTTPS URL. (ngrok was tried first and refused: running the agent
+behind an HTTP proxy is a paid ngrok feature, and the build VM cannot
+reach the internet except through its proxy.)
 
 ## License
 

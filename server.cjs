@@ -3,10 +3,11 @@
 // deterministically against the 7 trap types, proves the decision with the
 // tournament's own Groth16 circuit (snarkjs), returns a signed response.
 //
-// MUST-CONFIRM after registration (dashboard protocol docs / practice mode):
+// MUST-CONFIRM after registration (practice mode):
 //   - HMAC header format (assumed hex HMAC-SHA256 in x-agent-games-signature)
-//   - proof field names in the response (assumed `proof` + `public_signals`)
-//   - preflight handshake request/response shape
+//   - preflight shape adopted from the official /build starter prompt
+//     ({ ok: true, protocolVersion: "v1" }) — confirm against a real preflight.
+//   - taskId encoding as a public signal (sha256-of-string, numeric passthrough).
 const http = require("http");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -14,12 +15,19 @@ const path = require("path");
 const snarkjs = require("snarkjs");
 
 const PORT = Number(process.env.PORT || 3000);
-const HMAC_SECRET = process.env.AGENT_HMAC_SECRET || "";
+const HMAC_SECRET = process.env.AGENT_GAMES_HMAC_SECRET || process.env.AGENT_HMAC_SECRET || "";
 const STATE_FILE = path.join(__dirname, "state.json");
-const WASM = path.join(__dirname, "..", "circuits", "gatekeeper.wasm");
-const ZKEY = path.join(__dirname, "..", "circuits", "gatekeeper_final.zkey");
+// Circuit artifacts live in circuits/ next to this file in the deployed repo,
+// or one level up in the dev layout (agent/../circuits). Prefer the local one.
+function circuitPath(name) {
+  const local = path.join(__dirname, "circuits", name);
+  if (fs.existsSync(local)) return local;
+  return path.join(__dirname, "..", "circuits", name);
+}
+const WASM = circuitPath("gatekeeper.wasm");
+const ZKEY = circuitPath("gatekeeper_final.zkey");
 
-if (!HMAC_SECRET) console.warn("[warn] AGENT_HMAC_SECRET unset - using dev secret, DO NOT use live");
+if (!HMAC_SECRET) console.warn("[warn] HMAC secret unset (AGENT_GAMES_HMAC_SECRET) - using dev secret, DO NOT use live");
 const SECRET = HMAC_SECRET || "dev-secret-do-not-use-live";
 
 // ---- persistent state: seen proof refs + task response cache ----
@@ -131,9 +139,10 @@ const server = http.createServer((req, res) => {
       } catch {
         res.writeHead(400); res.end(JSON.stringify({ error: "bad json" })); return;
       }
-      // Preflight handshake: acknowledge with a signed ok (shape TBD).
+      // Preflight handshake: shape from the official /build starter prompt
+      // ({ ok: true, protocolVersion: "v1" }, signed). Confirm in practice.
       if (env.type && String(env.type).includes("preflight")) {
-        sendSigned(res, 200, { status: "ok", type: env.type });
+        sendSigned(res, 200, { ok: true, protocolVersion: "v1" });
         return;
       }
       const taskId = env.task_id || env.taskId || "";
@@ -151,10 +160,12 @@ const server = http.createServer((req, res) => {
         // Fail closed on malformed input.
         result = { decision: "REJECT", reason_code: "THRESHOLD_MISMATCH" };
       }
+      // Response schema exactly as the /build starter prompt specifies:
+      // { decision, reason_code, proof, public_signals }. No extra fields
+      // (the platform strictly validates response schemas elsewhere).
       const response = {
         decision: result.decision,
         reason_code: result.reason_code,
-        proof_tx: input.proof_tx || "",
       };
       // 4. Prove (PROOF_REUSED tasks carry no proof by design).
       if (result.reason_code !== "PROOF_REUSED") {
