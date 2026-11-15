@@ -1,0 +1,1 @@
+{"dependencies":{"snarkjs":"0.7.6"},"description":"Proof Gatekeeper agent for zkVerify Agent Games — a wallet guard that proves every decision (Groth16, BN254)","license":"UNLICENSED","main":"server.cjs","name":"proofguard-gatekeeper","scripts":{"start":"node server.cjs","test":"node trap-test.cjs && node e2e-test.cjs"},"version":"0.1.0"}
