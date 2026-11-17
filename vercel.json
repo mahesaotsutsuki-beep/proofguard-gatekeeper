@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 10,
+      "includeFiles": "circuits/**"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }]
+}
