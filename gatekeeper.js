@@ -16,7 +16,7 @@ const snarkjs = require("snarkjs");
 
 const PORT = Number(process.env.PORT || 3000);
 const HMAC_SECRET = process.env.AGENT_GAMES_HMAC_SECRET || process.env.AGENT_HMAC_SECRET || "";
-const STATE_FILE = process.env.VERCEL ? "/tmp/agentgames-state.json" : path.join(__dirname, "state.json");
+const STATE_FILE = (process.env.VERCEL || process.env.VERCEL_ENV || process.env.VERCEL_URL || process.env.AWS_LAMBDA_FUNCTION_NAME || __dirname.startsWith("/var/task")) ? "/tmp/agentgames-state.json" : path.join(__dirname, "state.json");
 // Circuit artifacts live in circuits/ next to this file in the deployed repo,
 // or one level up in the dev layout (agent/../circuits). Prefer the local one.
 function circuitPath(name) {
